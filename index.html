@@ -2,6 +2,7 @@
 <html>
 <head>
   <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>NomNom Club</title>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
 
@@ -13,9 +14,9 @@
     }
 
     .container {
-      max-width: 420px;
+      max-width: 480px;
       margin: 0 auto;
-      padding: 20px;
+      padding: 16px;
     }
 
     .card {
@@ -108,12 +109,17 @@
       border-radius: 50%;
       position: absolute;
       transition: all 1s ease;
-}
+    }
 
-.center {
-  top: 35px !important;
-  left: calc(50% - 25px) !important;
-}
+    .center {
+      top: 35px !important;
+      left: calc(50% - 25px) !important;
+    }
+ 
+    #timeTags, #foodOptions {
+      display: flex;
+      flex-wrap: wrap;
+    }
   </style>
 </head>
 
@@ -137,12 +143,35 @@
 
   <input id="userName" placeholder="Your name">
 
-  <div id="timeTags">
-    <span class="tag" onclick="toggleTag(this)">Fri-Lunch</span>
-    <span class="tag" onclick="toggleTag(this)">Fri-Dinner</span>
-    <span class="tag" onclick="toggleTag(this)">Sat-Lunch</span>
-    <span class="tag" onclick="toggleTag(this)">Sat-Dinner</span>
-  </div>
+ <div id="timeTags">
+  <!-- Fri -->
+  <span class="tag" onclick="toggleTag(this)">Fri-Lunch</span>
+  <span class="tag" onclick="toggleTag(this)">Fri-Dinner</span>
+
+  <!-- Sat -->
+  <span class="tag" onclick="toggleTag(this)">Sat-Lunch</span>
+  <span class="tag" onclick="toggleTag(this)">Sat-Dinner</span>
+
+  <!-- Sun -->
+  <span class="tag" onclick="toggleTag(this)">Sun-Lunch</span>
+  <span class="tag" onclick="toggleTag(this)">Sun-Dinner</span>
+
+  <!-- Mon -->
+  <span class="tag" onclick="toggleTag(this)">Mon-Lunch</span>
+  <span class="tag" onclick="toggleTag(this)">Mon-Dinner</span>
+
+  <!-- Tue -->
+  <span class="tag" onclick="toggleTag(this)">Tue-Lunch</span>
+  <span class="tag" onclick="toggleTag(this)">Tue-Dinner</span>
+
+  <!-- Wed -->
+  <span class="tag" onclick="toggleTag(this)">Wed-Lunch</span>
+  <span class="tag" onclick="toggleTag(this)">Wed-Dinner</span>
+
+  <!-- Thu -->
+  <span class="tag" onclick="toggleTag(this)">Thu-Lunch</span>
+  <span class="tag" onclick="toggleTag(this)">Thu-Dinner</span>
+</div>
 
   <!-- 提交时间 -->
   <button class="btn btn-primary" onclick="submitAvailability()">
@@ -169,7 +198,7 @@
     <h3>Everyone Free 🎉</h3>
     <div id="overlapOptions"></div>
 
-    <button class="btn btn-primary" onclick="confirmTime()">Confirm Time</button>
+    <button id="confirmBtn" class="btn btn-primary" onclick="confirmTime()">Confirm Time</button>
     <button class="btn btn-secondary" onclick="goBack()">Back</button>
 
     <h3 id="finalResult"></h3>
@@ -192,9 +221,9 @@
 
   <button class="btn btn-primary" onclick="submitFoodVote()">Vote</button>
   <button class="btn btn-secondary" onclick="showFoodResult()">View Result</button>
-  <button class="btn btn-primary" onclick="generateInvitationCard()">
+  <button id="cardBtn" class="btn btn-primary" onclick="generateInvitationCard()">
   🎉 Generate Invitation Card
-</button>
+  </button>
 
   <h3 id="foodResult"></h3>
 </div>
@@ -315,14 +344,26 @@ async function loadResults() {
 
   const users = [...new Set(uniqueData.map(d => d.user_name))];
 
-  if (users.length < 2) {
+  const currentUser = document.getElementById("userName").value;
+
+  const isLastUser = users.includes(currentUser) && users.length >= 2;
+
+  // ✅ 显示所有人数据
+  document.getElementById("allData").innerHTML =
+    uniqueData.map(d => `<div>${d.user_name} · ${d.date} ${d.time_slot}</div>`).join("");
+
+  // ✅ 控制 Confirm 按钮显示（关键）
+  document.getElementById("confirmBtn").style.display =
+    isLastUser ? "block" : "none";
+
+  // ❗ 如果不是最后一个人 → 直接拦住
+  if (!isLastUser) {
     document.getElementById("overlapOptions").innerHTML =
-      "No results yet — waiting for more friends to join!";
+      "Waiting for more participants before locking time ⏳";
     return;
   }
 
-  document.getElementById("allData").innerHTML =
-    uniqueData.map(d => `<div>${d.user_name} · ${d.date} ${d.time_slot}</div>`).join("");
+  // 👇 下面才是“最后一个人”才会执行的逻辑
 
   const totalUsers = users.length;
   const countMap = {};
@@ -346,12 +387,6 @@ async function loadResults() {
     overlap.map(t =>
       `<div class="tag" onclick="selectFinal(this)">${t}</div>`
     ).join("");
-}
-
-function selectFinal(el) {
-  document.querySelectorAll("#overlapOptions .tag")
-    .forEach(t => t.classList.remove("selected"));
-  el.classList.add("selected");
 }
 
 /* =========================
@@ -382,7 +417,19 @@ function confirmTime() {
 ========================= */
 
 function toggleFood(el) {
-  el.classList.toggle("selected"); // ✅ 改成多选
+  const selected = document.querySelectorAll("#foodOptions .selected");
+
+  if (el.classList.contains("selected")) {
+    el.classList.remove("selected");
+    return;
+  }
+
+  if (selected.length >= 3) {
+    alert("You can select up to 3 options");
+    return;
+  }
+
+  el.classList.add("selected");
 }
 
 async function submitFoodVote() {
@@ -429,7 +476,16 @@ async function showFoodResult() {
   const sorted = Object.entries(count)
     .sort((a, b) => b[1] - a[1]);
 
-  // ✅ ✅ ✅ 加在这里（核心）
+  // ✅ 判断是否最后一个人
+  const currentUser = document.getElementById("foodUserName").value;
+  const users = [...new Set(data.map(d => d.user_name))];
+  const isLastUser = users.length >= 2 && users.includes(currentUser);
+
+  // ✅ 控制卡片按钮
+  document.getElementById("cardBtn").style.display =
+    isLastUser ? "block" : "none";
+
+  // ✅ 存第一名（给卡片用）
   const winner = sorted[0][0];
   localStorage.setItem("final_food", winner);
 
@@ -441,7 +497,6 @@ async function showFoodResult() {
     sorted.map(([food, num], index) => {
 
       const widthPercent = (num / maxVotes) * 100;
-
       const medal = medals[index] || "🍽";
 
       return `
@@ -451,6 +506,12 @@ async function showFoodResult() {
         </div>
       `;
     }).join("");
+
+  // ✅ 非最后用户提示
+  if (!isLastUser) {
+    document.getElementById("foodResult").innerHTML +=
+      `<p style="margin-top:10px;">Share the link to invite more friends 👇</p>`;
+  }
 }
 
 /* ========================= */
