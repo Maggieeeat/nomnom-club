@@ -92,7 +92,11 @@ body { font-family: Arial; background:#f5f5f5; }
 </div>
 
 <script>
-const client = supabase.createClient("你的URL","你的KEY");
+const SUPABASE_URL = "https://bunzqgrdssupaeqznjwl.supabase.co";
+const SUPABASE_KEY = "sb_publishable_UFLcdJ0eFI2PO6suaFxQeQ_Bpaf9X9z";
+
+const client = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
 let currentEventId = null;
 
 /* 初始化 */
