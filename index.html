@@ -7,13 +7,70 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
 
 <style>
-body { font-family: Arial; background:#f5f5f5; padding:20px;}
-.card { background:white; padding:20px; border-radius:12px; max-width:400px; margin:auto;}
-.tag { display:inline-block; padding:8px 12px; margin:5px; border-radius:20px; background:#eee; cursor:pointer;}
-.tag.selected { background:#07c160; color:white;}
-.btn { margin-top:10px; padding:10px; width:100%; border:none; border-radius:8px;}
-.btn-primary { background:#07c160; color:white;}
-input { width:100%; padding:8px; margin-top:10px; }
+body {
+  font-family: Arial, sans-serif;
+  background: #f5f5f5;
+  padding: 20px;
+}
+.card {
+  background: white;
+  padding: 20px;
+  border-radius: 12px;
+  max-width: 420px;
+  margin: auto;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+}
+.tag {
+  display: inline-block;
+  padding: 8px 12px;
+  margin: 5px;
+  border-radius: 20px;
+  background: #eee;
+  cursor: pointer;
+  user-select: none;
+}
+.tag.selected {
+  background: #07c160;
+  color: white;
+}
+.btn {
+  margin-top: 10px;
+  padding: 10px;
+  width: 100%;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+}
+.btn-primary {
+  background: #07c160;
+  color: white;
+}
+.btn-secondary {
+  background: #f0f0f0;
+  color: #333;
+}
+input {
+  width: 100%;
+  padding: 8px;
+  margin-top: 10px;
+  box-sizing: border-box;
+}
+#shareLink {
+  margin-bottom: 12px;
+  word-break: break-all;
+}
+.small-text {
+  font-size: 12px;
+  color: #666;
+  margin-top: 8px;
+}
+.result-box {
+  background: #fafafa;
+  padding: 12px;
+  border-radius: 8px;
+  margin-top: 12px;
+  line-height: 1.7;
+}
 </style>
 </head>
 
@@ -21,37 +78,38 @@ input { width:100%; padding:8px; margin-top:10px; }
 
 <!-- PAGE 1 -->
 <div class="card" id="page1">
-<h2>NomNom Club 🍜</h2>
+  <h2>NomNom Club 🍜</h2>
 
-<input id="eventName" placeholder="Event name">
-<input id="hostName" placeholder="Your name">
-<input id="expectedPeople" placeholder="Number of people">
+  <input id="eventName" placeholder="Event name">
+  <input id="hostName" placeholder="Your name">
+  <input id="expectedPeople" type="number" min="1" placeholder="Number of people">
 
-<button class="btn btn-primary" onclick="createDinnerEvent()">Create</button>
+  <button class="btn btn-primary" onclick="createDinnerEvent()">Create</button>
 </div>
 
 <!-- PAGE 2 -->
 <div class="card" id="page2" style="display:none;">
-<h3>Pick Time & Food</h3>
+  <h3>Pick Time & Food</h3>
 
-<div id="shareLink"></div>
+  <div id="shareLink"></div>
 
-<input id="userName" placeholder="Your name">
+  <input id="userName" placeholder="Your name">
 
-<h4>Time</h4>
-<div id="timeTags"></div>
+  <h4>Time</h4>
+  <div id="timeTags"></div>
 
-<h4>Food (max 3)</h4>
-<div id="foodTags"></div>
+  <h4>Food (max 3)</h4>
+  <div id="foodTags"></div>
 
-<button class="btn btn-primary" onclick="submitAll()">Submit</button>
-<button class="btn" onclick="loadResults()">View Progress</button>
+  <button class="btn btn-primary" onclick="submitAll()">Submit</button>
+  <button class="btn btn-secondary" onclick="loadResults()">View Progress</button>
 </div>
 
 <!-- PAGE 3 -->
 <div class="card" id="page3" style="display:none;">
-<h3>Final Decision</h3>
-<div id="finalResult"></div>
+  <h3>Final Decision</h3>
+  <div id="finalResult" class="result-box"></div>
+  <button class="btn btn-secondary" onclick="backToVote()">Back</button>
 </div>
 
 <script>
@@ -59,140 +117,319 @@ const SUPABASE_URL = "https://bunzqgrdssupaeqznjwl.supabase.co";
 const SUPABASE_KEY = "sb_publishable_UFLcdJ0eFI2PO6suaFxQeQ_Bpaf9X9z";
 const client = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-let currentEventId=null;
-let expectedPeople=0;
+let currentEventId = null;
+let expectedPeople = 0;
 
-const times=["Mon-Lunch","Mon-Dinner","Tue-Lunch","Tue-Dinner","Wed-Lunch","Wed-Dinner","Thu-Lunch","Thu-Dinner","Fri-Lunch","Fri-Dinner","Sat-Lunch","Sat-Dinner","Sun-Lunch","Sun-Dinner"];
-const foods=["Chinese","Japanese","Korean","Italian","Thai","BBQ"];
+const times = [
+  "Mon-Lunch","Mon-Dinner",
+  "Tue-Lunch","Tue-Dinner",
+  "Wed-Lunch","Wed-Dinner",
+  "Thu-Lunch","Thu-Dinner",
+  "Fri-Lunch","Fri-Dinner",
+  "Sat-Lunch","Sat-Dinner",
+  "Sun-Lunch","Sun-Dinner"
+];
 
-function renderTags(){
-document.getElementById("timeTags").innerHTML=
-times.map(t=>`<span class="tag" onclick="toggle(this)">${t}</span>`).join("");
+const foods = ["Chinese","Japanese","Korean","Italian","Thai","BBQ"];
 
-document.getElementById("foodTags").innerHTML=
-foods.map(f=>`<span class="tag food" onclick="toggleFood(this)">${f}</span>`).join("");
+function renderTags() {
+  document.getElementById("timeTags").innerHTML =
+    times.map(t => `<span class="tag" onclick="toggle(this)">${t}</span>`).join("");
+
+  document.getElementById("foodTags").innerHTML =
+    foods.map(f => `<span class="tag food" onclick="toggleFood(this)">${f}</span>`).join("");
 }
 
-function toggle(el){
-el.classList.toggle("selected");
+function toggle(el) {
+  el.classList.toggle("selected");
 }
 
-function toggleFood(el){
-const selected=document.querySelectorAll(".food.selected");
-if(!el.classList.contains("selected") && selected.length>=3){
-alert("Max 3 foods");
-return;
-}
-el.classList.toggle("selected");
-}
-
-async function createDinnerEvent(){
-const name=document.getElementById("eventName").value;
-const host=document.getElementById("hostName").value;
-expectedPeople=parseInt(document.getElementById("expectedPeople").value);
-
-if(!name || !host || !expectedPeople){
-alert("Please fill all fields");
-return;
+function toggleFood(el) {
+  const selected = document.querySelectorAll("#foodTags .food.selected");
+  if (!el.classList.contains("selected") && selected.length >= 3) {
+    alert("Max 3 foods");
+    return;
+  }
+  el.classList.toggle("selected");
 }
 
-const {data,error}=await client
-  .from("events")
-  .insert([{title:name, expected_people:expectedPeople}])
-  .select();
-
-if(error){
-console.error(error);
-alert("Create failed ❌ check console");
-return;
+function showPage(pageId) {
+  document.getElementById("page1").style.display = "none";
+  document.getElementById("page2").style.display = "none";
+  document.getElementById("page3").style.display = "none";
+  document.getElementById(pageId).style.display = "block";
 }
 
-currentEventId=data[0].id;
-
-// 自动填入host名字
-document.getElementById("userName").value = host;
-
-document.getElementById("page1").style.display="none";
-document.getElementById("page2").style.display="block";
-
-document.getElementById("shareLink").innerHTML=
-`Share 👉 ${location.origin}?event=${currentEventId}`;
-
-renderTags();
+function setShareLink() {
+  const shareUrl = `${location.origin}${location.pathname}?event=${currentEventId}`;
+  document.getElementById("shareLink").innerHTML =
+    `Share 👉 <a href="${shareUrl}" target="_blank">${shareUrl}</a>`;
 }
 
-async function submitAll(){
-const user=document.getElementById("userName").value;
-
-if(!user){
-alert("Enter your name");
-return;
+function backToVote() {
+  showPage("page2");
 }
 
-const selectedTimes=[...document.querySelectorAll("#timeTags .selected")].map(t=>t.innerText);
-const selectedFoods=[...document.querySelectorAll("#foodTags .selected")].map(t=>t.innerText);
+async function createDinnerEvent() {
+  try {
+    const name = document.getElementById("eventName").value.trim();
+    const host = document.getElementById("hostName").value.trim();
+    expectedPeople = parseInt(document.getElementById("expectedPeople").value, 10);
 
-await client.from("availability").delete().eq("event_id",currentEventId).eq("user_name",user);
+    if (!name || !host) {
+      alert("Please fill all fields");
+      return;
+    }
 
-await Promise.all(selectedTimes.map(t=>{
-const [date,time]=t.split("-");
-return client.from("availability").insert([{event_id:currentEventId,user_name:user,date,time_slot:time}]);
-}));
+    if (isNaN(expectedPeople) || expectedPeople <= 0) {
+      alert("Please enter a valid number of people");
+      return;
+    }
 
-await client.from("food_votes").delete().eq("event_id",currentEventId).eq("user_name",user);
+    const { data, error } = await client
+      .from("events")
+      .insert([
+        {
+          title: name,
+          expected_people: expectedPeople
+        }
+      ])
+      .select()
+      .single();
 
-await Promise.all(selectedFoods.map(f=>{
-return client.from("food_votes").insert([{event_id:currentEventId,user_name:user,food:f}]);
-}));
+    if (error) {
+      console.error("Create event error:", error);
+      alert("Create failed ❌ Check console");
+      return;
+    }
 
-alert("Saved!");
+    currentEventId = data.id;
+
+    document.getElementById("userName").value = host;
+
+    renderTags();
+    setShareLink();
+    showPage("page2");
+  } catch (err) {
+    console.error("Unexpected createDinnerEvent error:", err);
+    alert("Unexpected error happened");
+  }
 }
 
-async function loadResults(){
+async function submitAll() {
+  try {
+    if (!currentEventId) {
+      alert("Event not found");
+      return;
+    }
 
-const {data:event}=await client.from("events").select("*").eq("id",currentEventId).single();
-expectedPeople=event.expected_people;
+    const user = document.getElementById("userName").value.trim();
 
-const {data:avail}=await client.from("availability").select("*").eq("event_id",currentEventId);
-const {data:food}=await client.from("food_votes").select("*").eq("event_id",currentEventId);
+    if (!user) {
+      alert("Enter your name");
+      return;
+    }
 
-const users=[...new Set(avail.map(d=>d.user_name))];
+    const selectedTimes = [...document.querySelectorAll("#timeTags .selected")]
+      .map(t => t.innerText.trim());
 
-if(users.length<expectedPeople){
-alert(`Waiting for ${expectedPeople-users.length} more people`);
-return;
+    const selectedFoods = [...document.querySelectorAll("#foodTags .selected")]
+      .map(t => t.innerText.trim());
+
+    const { error: deleteAvailError } = await client
+      .from("availability")
+      .delete()
+      .eq("event_id", currentEventId)
+      .eq("user_name", user);
+
+    if (deleteAvailError) {
+      console.error("Delete availability error:", deleteAvailError);
+      alert("Failed to update time choices");
+      return;
+    }
+
+    if (selectedTimes.length > 0) {
+      const availabilityRows = selectedTimes.map(t => {
+        const [date, time] = t.split("-");
+        return {
+          event_id: currentEventId,
+          user_name: user,
+          date: date,
+          time_slot: time
+        };
+      });
+
+      const { error: insertAvailError } = await client
+        .from("availability")
+        .insert(availabilityRows);
+
+      if (insertAvailError) {
+        console.error("Insert availability error:", insertAvailError);
+        alert("Failed to save time choices");
+        return;
+      }
+    }
+
+    const { error: deleteFoodError } = await client
+      .from("food_votes")
+      .delete()
+      .eq("event_id", currentEventId)
+      .eq("user_name", user);
+
+    if (deleteFoodError) {
+      console.error("Delete food votes error:", deleteFoodError);
+      alert("Failed to update food choices");
+      return;
+    }
+
+    if (selectedFoods.length > 0) {
+      const foodRows = selectedFoods.map(f => ({
+        event_id: currentEventId,
+        user_name: user,
+        food: f
+      }));
+
+      const { error: insertFoodError } = await client
+        .from("food_votes")
+        .insert(foodRows);
+
+      if (insertFoodError) {
+        console.error("Insert food votes error:", insertFoodError);
+        alert("Failed to save food choices");
+        return;
+      }
+    }
+
+    alert("Saved!");
+  } catch (err) {
+    console.error("Unexpected submitAll error:", err);
+    alert("Unexpected error happened");
+  }
 }
 
-const count={};
-avail.forEach(d=>{
-const key=d.date+"-"+d.time_slot;
-count[key]=(count[key]||0)+1;
-});
+async function loadResults() {
+  try {
+    if (!currentEventId) {
+      alert("Event not found");
+      return;
+    }
 
-const finalTime=Object.entries(count).sort((a,b)=>b[1]-a[1])[0][0];
+    const { data: event, error: eventError } = await client
+      .from("events")
+      .select("*")
+      .eq("id", currentEventId)
+      .single();
 
-const foodCount={};
-food.forEach(f=>{
-foodCount[f.food]=(foodCount[f.food]||0)+1;
-});
+    if (eventError || !event) {
+      console.error("Load event error:", eventError);
+      alert("Event not found");
+      return;
+    }
 
-const finalFood=Object.entries(foodCount).sort((a,b)=>b[1]-a[1])[0][0];
+    expectedPeople = event.expected_people || 0;
 
-document.getElementById("page2").style.display="none";
-document.getElementById("page3").style.display="block";
+    const { data: avail, error: availError } = await client
+      .from("availability")
+      .select("*")
+      .eq("event_id", currentEventId);
 
-document.getElementById("finalResult").innerHTML=
-`📅 ${finalTime}<br>🍜 ${finalFood}`;
+    if (availError) {
+      console.error("Load availability error:", availError);
+      alert("Failed to load availability");
+      return;
+    }
+
+    const { data: food, error: foodError } = await client
+      .from("food_votes")
+      .select("*")
+      .eq("event_id", currentEventId);
+
+    if (foodError) {
+      console.error("Load food votes error:", foodError);
+      alert("Failed to load food votes");
+      return;
+    }
+
+    const availList = avail || [];
+    const foodList = food || [];
+
+    const users = [...new Set(availList.map(d => d.user_name))];
+
+    if (users.length < expectedPeople) {
+      alert(`Waiting for ${expectedPeople - users.length} more people`);
+      return;
+    }
+
+    if (availList.length === 0) {
+      alert("No one has submitted time yet");
+      return;
+    }
+
+    const count = {};
+    availList.forEach(d => {
+      const key = `${d.date}-${d.time_slot}`;
+      count[key] = (count[key] || 0) + 1;
+    });
+
+    const sortedTimes = Object.entries(count).sort((a, b) => b[1] - a[1]);
+    const finalTime = sortedTimes.length > 0 ? sortedTimes[0][0] : "No result yet";
+
+    const foodCount = {};
+    foodList.forEach(f => {
+      foodCount[f.food] = (foodCount[f.food] || 0) + 1;
+    });
+
+    const sortedFoods = Object.entries(foodCount).sort((a, b) => b[1] - a[1]);
+    const finalFood = sortedFoods.length > 0 ? sortedFoods[0][0] : "No food preference yet";
+
+    document.getElementById("finalResult").innerHTML =
+      `📅 <strong>${finalTime}</strong><br>🍜 <strong>${finalFood}</strong><br><div class="small-text">Participants submitted: ${users.length}/${expectedPeople}</div>`;
+
+    showPage("page3");
+  } catch (err) {
+    console.error("Unexpected loadResults error:", err);
+    alert("Unexpected error happened");
+  }
 }
 
-// 自动进入 event
-const urlParams=new URLSearchParams(window.location.search);
-if(urlParams.get("event")){
-currentEventId=urlParams.get("event");
-document.getElementById("page1").style.display="none";
-document.getElementById("page2").style.display="block";
-renderTags();
+async function initFromUrl() {
+  try {
+    const urlParams = new URLSearchParams(window.location.search);
+    const eventId = urlParams.get("event");
+
+    if (!eventId) {
+      showPage("page1");
+      return;
+    }
+
+    currentEventId = eventId;
+
+    const { data: event, error } = await client
+      .from("events")
+      .select("*")
+      .eq("id", currentEventId)
+      .single();
+
+    if (error || !event) {
+      console.error("Init event load error:", error);
+      alert("Invalid or expired event link");
+      showPage("page1");
+      currentEventId = null;
+      return;
+    }
+
+    expectedPeople = event.expected_people || 0;
+
+    renderTags();
+    setShareLink();
+    showPage("page2");
+  } catch (err) {
+    console.error("Unexpected initFromUrl error:", err);
+    showPage("page1");
+  }
 }
+
+initFromUrl();
 </script>
 
 </body>
