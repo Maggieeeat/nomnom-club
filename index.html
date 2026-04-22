@@ -27,7 +27,7 @@ input { width:100%; padding:8px; margin-top:10px; }
 <input id="hostName" placeholder="Your name">
 <input id="expectedPeople" placeholder="Number of people">
 
-<button class="btn btn-primary" onclick="createEvent()">Create</button>
+<button class="btn btn-primary" onclick="createDinnerEvent()">Create</button>
 </div>
 
 <!-- PAGE 2 -->
@@ -86,7 +86,7 @@ return;
 el.classList.toggle("selected");
 }
 
-async function createEvent(){
+async function createDinnerEvent(){
 const name=document.getElementById("eventName").value;
 const host=document.getElementById("hostName").value;
 expectedPeople=parseInt(document.getElementById("expectedPeople").value);
