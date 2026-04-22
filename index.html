@@ -1,436 +1,645 @@
 <!DOCTYPE html>
 <html>
 <head>
-<meta charset="UTF-8">
-<title>NomNom Club 🍜</title>
+  <meta charset="UTF-8">
+  <title>NomNom Club 🍜</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
 
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f5f5f5;
+      padding: 20px;
+      margin: 0;
+    }
 
-<style>
-body {
-  font-family: Arial, sans-serif;
-  background: #f5f5f5;
-  padding: 20px;
-}
-.card {
-  background: white;
-  padding: 20px;
-  border-radius: 12px;
-  max-width: 420px;
-  margin: auto;
-  box-shadow: 0 2px 10px rgba(0,0,0,0.08);
-}
-.tag {
-  display: inline-block;
-  padding: 8px 12px;
-  margin: 5px;
-  border-radius: 20px;
-  background: #eee;
-  cursor: pointer;
-  user-select: none;
-}
-.tag.selected {
-  background: #07c160;
-  color: white;
-}
-.btn {
-  margin-top: 10px;
-  padding: 10px;
-  width: 100%;
-  border: none;
-  border-radius: 8px;
-  cursor: pointer;
-}
-.btn-primary {
-  background: #07c160;
-  color: white;
-}
-.btn-secondary {
-  background: #f0f0f0;
-  color: #333;
-}
-input {
-  width: 100%;
-  padding: 8px;
-  margin-top: 10px;
-  box-sizing: border-box;
-}
-#shareLink {
-  margin-bottom: 12px;
-  word-break: break-all;
-}
-.small-text {
-  font-size: 12px;
-  color: #666;
-  margin-top: 8px;
-}
-.result-box {
-  background: #fafafa;
-  padding: 12px;
-  border-radius: 8px;
-  margin-top: 12px;
-  line-height: 1.7;
-}
-</style>
+    .card {
+      background: white;
+      padding: 20px;
+      border-radius: 16px;
+      max-width: 430px;
+      margin: 20px auto;
+      box-shadow: 0 4px 14px rgba(0,0,0,0.08);
+    }
+
+    h2, h3, h4 {
+      margin-top: 0;
+    }
+
+    input {
+      width: 100%;
+      padding: 10px;
+      margin-top: 10px;
+      box-sizing: border-box;
+      border: 1px solid #ddd;
+      border-radius: 10px;
+      font-size: 14px;
+    }
+
+    .tag {
+      display: inline-block;
+      padding: 8px 12px;
+      margin: 5px 5px 0 0;
+      border-radius: 20px;
+      background: #eee;
+      cursor: pointer;
+      user-select: none;
+      transition: 0.2s;
+    }
+
+    .tag:hover {
+      opacity: 0.9;
+    }
+
+    .tag.selected {
+      background: #07c160;
+      color: white;
+    }
+
+    .option-tag {
+      display: inline-block;
+      padding: 10px 14px;
+      margin: 6px 6px 0 0;
+      border-radius: 20px;
+      background: #f0f0f0;
+      cursor: pointer;
+      user-select: none;
+      border: 1px solid transparent;
+    }
+
+    .option-tag.selected {
+      background: #07c160;
+      color: white;
+      border-color: #07c160;
+    }
+
+    .btn {
+      margin-top: 12px;
+      padding: 11px 14px;
+      width: 100%;
+      border: none;
+      border-radius: 10px;
+      cursor: pointer;
+      font-size: 14px;
+    }
+
+    .btn-primary {
+      background: #07c160;
+      color: white;
+    }
+
+    .btn-secondary {
+      background: #f0f0f0;
+      color: #333;
+    }
+
+    .small-text {
+      font-size: 13px;
+      color: #666;
+      margin-top: 10px;
+      line-height: 1.5;
+    }
+
+    .share-box {
+      margin-top: 18px;
+      padding-top: 12px;
+      border-top: 1px solid #eee;
+      word-break: break-all;
+    }
+
+    .result-box {
+      background: #fafafa;
+      border-radius: 12px;
+      padding: 14px;
+      line-height: 1.8;
+      margin-top: 10px;
+    }
+
+    .hidden {
+      display: none;
+    }
+
+    .section-title {
+      margin-top: 18px;
+      margin-bottom: 8px;
+      font-weight: bold;
+    }
+
+    .center-text {
+      text-align: center;
+    }
+
+    .summary-item {
+      background: #fafafa;
+      border-radius: 10px;
+      padding: 10px 12px;
+      margin-top: 8px;
+    }
+
+    .invite-card {
+      border: 2px dashed #07c160;
+      border-radius: 14px;
+      padding: 18px;
+      background: #fcfffd;
+      margin-top: 12px;
+    }
+  </style>
 </head>
 
 <body>
 
-<!-- PAGE 1 -->
-<div class="card" id="page1">
-  <h2>NomNom Club 🍜</h2>
+  <!-- PAGE 1: Create event -->
+  <div class="card" id="page1">
+    <h2>NomNom Club 🍜</h2>
 
-  <input id="eventName" placeholder="Event name">
-  <input id="hostName" placeholder="Your name">
-  <input id="expectedPeople" type="number" min="1" placeholder="Number of people">
+    <input id="eventName" placeholder="Event name">
+    <input id="hostName" placeholder="Your name">
+    <input id="expectedPeople" type="number" min="1" placeholder="Number of people">
 
-  <button class="btn btn-primary" onclick="createDinnerEvent()">Create</button>
-</div>
+    <button class="btn btn-primary" onclick="createDinnerEvent()">Create</button>
+  </div>
 
-<!-- PAGE 2 -->
-<div class="card" id="page2" style="display:none;">
-  <h3>Pick Time & Food</h3>
+  <!-- PAGE 2: Vote page -->
+  <div class="card hidden" id="page2">
+    <h3>Pick Time & Food</h3>
 
-  <div id="shareLink"></div>
+    <input id="userName" placeholder="Your name">
 
-  <input id="userName" placeholder="Your name">
+    <div class="section-title">Time</div>
+    <div id="timeTags"></div>
 
-  <h4>Time</h4>
-  <div id="timeTags"></div>
+    <div class="section-title">Food (max 3)</div>
+    <div id="foodTags"></div>
 
-  <h4>Food (max 3)</h4>
-  <div id="foodTags"></div>
+    <button class="btn btn-primary" onclick="submitAll()">Submit</button>
 
-  <button class="btn btn-primary" onclick="submitAll()">Submit</button>
-  <button class="btn btn-secondary" onclick="loadResults()">View Progress</button>
-</div>
+    <!-- 分享链接放最后，默认隐藏 -->
+    <div id="shareLink" class="share-box hidden"></div>
+  </div>
 
-<!-- PAGE 3 -->
-<div class="card" id="page3" style="display:none;">
-  <h3>Final Decision</h3>
-  <div id="finalResult" class="result-box"></div>
-  <button class="btn btn-secondary" onclick="backToVote()">Back</button>
-</div>
+  <!-- PAGE 3: Last person intro -->
+  <div class="card hidden" id="page3">
+    <h3>Let’s see what others voted</h3>
+    <div class="small-text">
+      You are the last person to join this dinner.  
+      Now you can review the group choices and lock in the final time and food.
+    </div>
 
-<script>
-const SUPABASE_URL = "https://bunzqgrdssupaeqznjwl.supabase.co";
-const SUPABASE_KEY = "sb_publishable_UFLcdJ0eFI2PO6suaFxQeQ_Bpaf9X9z";
-const client = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+    <div id="summaryPreview" class="result-box"></div>
 
-let currentEventId = null;
-let expectedPeople = 0;
+    <button class="btn btn-primary" onclick="goToLockPage()">Continue</button>
+  </div>
 
-const times = [
-  "Mon-Lunch","Mon-Dinner",
-  "Tue-Lunch","Tue-Dinner",
-  "Wed-Lunch","Wed-Dinner",
-  "Thu-Lunch","Thu-Dinner",
-  "Fri-Lunch","Fri-Dinner",
-  "Sat-Lunch","Sat-Dinner",
-  "Sun-Lunch","Sun-Dinner"
-];
+  <!-- PAGE 4: Lock in final choice -->
+  <div class="card hidden" id="page4">
+    <h3>Lock in final plan</h3>
 
-const foods = ["Chinese","Japanese","Korean","Italian","Thai","BBQ"];
+    <div class="section-title">Time results</div>
+    <div id="finalTimeOptions"></div>
+    <div class="small-text">Click one to lock in</div>
 
-function renderTags() {
-  document.getElementById("timeTags").innerHTML =
-    times.map(t => `<span class="tag" onclick="toggle(this)">${t}</span>`).join("");
+    <div class="section-title">Food results</div>
+    <div id="finalFoodOptions"></div>
+    <div class="small-text">Click one to lock in</div>
 
-  document.getElementById("foodTags").innerHTML =
-    foods.map(f => `<span class="tag food" onclick="toggleFood(this)">${f}</span>`).join("");
-}
+    <button class="btn btn-primary" onclick="generateInvite()">Generate Invitation</button>
+  </div>
 
-function toggle(el) {
-  el.classList.toggle("selected");
-}
+  <!-- PAGE 5: Invitation card -->
+  <div class="card hidden" id="page5">
+    <h3>Invitation Card</h3>
+    <div id="inviteCard" class="invite-card"></div>
 
-function toggleFood(el) {
-  const selected = document.querySelectorAll("#foodTags .food.selected");
-  if (!el.classList.contains("selected") && selected.length >= 3) {
-    alert("Max 3 foods");
-    return;
-  }
-  el.classList.toggle("selected");
-}
+    <button class="btn btn-primary" onclick="notifyEveryone()">Notify Everyone</button>
+    <button class="btn btn-secondary" onclick="backToLockPage()">Back</button>
+  </div>
 
-function showPage(pageId) {
-  document.getElementById("page1").style.display = "none";
-  document.getElementById("page2").style.display = "none";
-  document.getElementById("page3").style.display = "none";
-  document.getElementById(pageId).style.display = "block";
-}
+  <script>
+    const SUPABASE_URL = "https://bunzqgrdssupaeqznjwl.supabase.co";
+    const SUPABASE_KEY = "sb_publishable_UFLcdJ0eFI2PO6suaFxQeQ_Bpaf9X9z";
+    const client = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-function setShareLink() {
-  const shareUrl = `${location.origin}${location.pathname}?event=${currentEventId}`;
-  document.getElementById("shareLink").innerHTML =
-    `Share 👉 <a href="${shareUrl}" target="_blank">${shareUrl}</a>`;
-}
+    let currentEventId = null;
+    let expectedPeople = 0;
 
-function backToVote() {
-  showPage("page2");
-}
+    let finalTime = null;
+    let finalFood = null;
 
-async function createDinnerEvent() {
-  try {
-    const name = document.getElementById("eventName").value.trim();
-    const host = document.getElementById("hostName").value.trim();
-    expectedPeople = parseInt(document.getElementById("expectedPeople").value, 10);
+    let sortedTimeResults = [];
+    let sortedFoodResults = [];
 
-    if (!name || !host) {
-      alert("Please fill all fields");
-      return;
+    const times = [
+      "Mon-Lunch","Mon-Dinner",
+      "Tue-Lunch","Tue-Dinner",
+      "Wed-Lunch","Wed-Dinner",
+      "Thu-Lunch","Thu-Dinner",
+      "Fri-Lunch","Fri-Dinner",
+      "Sat-Lunch","Sat-Dinner",
+      "Sun-Lunch","Sun-Dinner"
+    ];
+
+    const foods = ["Chinese","Japanese","Korean","Italian","Thai","BBQ"];
+
+    function showPage(pageId) {
+      document.getElementById("page1").classList.add("hidden");
+      document.getElementById("page2").classList.add("hidden");
+      document.getElementById("page3").classList.add("hidden");
+      document.getElementById("page4").classList.add("hidden");
+      document.getElementById("page5").classList.add("hidden");
+
+      document.getElementById(pageId).classList.remove("hidden");
     }
 
-    if (isNaN(expectedPeople) || expectedPeople <= 0) {
-      alert("Please enter a valid number of people");
-      return;
+    function renderTags() {
+      document.getElementById("timeTags").innerHTML =
+        times.map(t => `<span class="tag" onclick="toggle(this)">${t}</span>`).join("");
+
+      document.getElementById("foodTags").innerHTML =
+        foods.map(f => `<span class="tag food" onclick="toggleFood(this)">${f}</span>`).join("");
     }
 
-    const { data, error } = await client
-      .from("events")
-      .insert([
-        {
-          title: name,
-          expected_people: expectedPeople
+    function toggle(el) {
+      el.classList.toggle("selected");
+    }
+
+    function toggleFood(el) {
+      const selected = document.querySelectorAll("#foodTags .food.selected");
+      if (!el.classList.contains("selected") && selected.length >= 3) {
+        alert("Max 3 foods");
+        return;
+      }
+      el.classList.toggle("selected");
+    }
+
+    function setShareLink() {
+      const shareUrl = `${location.origin}${location.pathname}?event=${currentEventId}`;
+      const shareLinkEl = document.getElementById("shareLink");
+      shareLinkEl.innerHTML = `
+        <strong>Share this link to the next friend:</strong><br>
+        <a href="${shareUrl}" target="_blank">${shareUrl}</a>
+      `;
+    }
+
+    async function createDinnerEvent() {
+      try {
+        const name = document.getElementById("eventName").value.trim();
+        const host = document.getElementById("hostName").value.trim();
+        expectedPeople = parseInt(document.getElementById("expectedPeople").value, 10);
+
+        if (!name || !host) {
+          alert("Please fill all fields");
+          return;
         }
-      ])
-      .select()
-      .single();
 
-    if (error) {
-      console.error("Create event error:", error);
-      alert("Create failed ❌ Check console");
-      return;
+        if (isNaN(expectedPeople) || expectedPeople <= 0) {
+          alert("Please enter a valid number of people");
+          return;
+        }
+
+        const { data, error } = await client
+          .from("events")
+          .insert([
+            {
+              title: name,
+              expected_people: expectedPeople
+            }
+          ])
+          .select()
+          .single();
+
+        if (error) {
+          console.error("Create event error:", error);
+          alert("Create failed ❌ Check console");
+          return;
+        }
+
+        currentEventId = data.id;
+
+        renderTags();
+        document.getElementById("userName").value = host;
+        document.getElementById("shareLink").classList.add("hidden");
+        document.getElementById("shareLink").innerHTML = "";
+
+        showPage("page2");
+      } catch (err) {
+        console.error("Unexpected createDinnerEvent error:", err);
+        alert("Unexpected error happened");
+      }
     }
 
-    currentEventId = data.id;
+    async function submitAll() {
+      try {
+        if (!currentEventId) {
+          alert("Event not found");
+          return;
+        }
 
-    document.getElementById("userName").value = host;
+        const user = document.getElementById("userName").value.trim();
 
-    renderTags();
-    setShareLink();
-    showPage("page2");
-  } catch (err) {
-    console.error("Unexpected createDinnerEvent error:", err);
-    alert("Unexpected error happened");
-  }
-}
+        if (!user) {
+          alert("Enter your name");
+          return;
+        }
 
-async function submitAll() {
-  try {
-    if (!currentEventId) {
-      alert("Event not found");
-      return;
-    }
+        const selectedTimes = [...document.querySelectorAll("#timeTags .selected")]
+          .map(t => t.innerText.trim());
 
-    const user = document.getElementById("userName").value.trim();
+        const selectedFoods = [...document.querySelectorAll("#foodTags .selected")]
+          .map(t => t.innerText.trim());
 
-    if (!user) {
-      alert("Enter your name");
-      return;
-    }
+        if (selectedTimes.length === 0) {
+          alert("Please choose at least 1 time");
+          return;
+        }
 
-    const selectedTimes = [...document.querySelectorAll("#timeTags .selected")]
-      .map(t => t.innerText.trim());
+        if (selectedFoods.length === 0) {
+          alert("Please choose at least 1 food");
+          return;
+        }
 
-    const selectedFoods = [...document.querySelectorAll("#foodTags .selected")]
-      .map(t => t.innerText.trim());
+        // 删除当前用户旧记录
+        const { error: deleteAvailError } = await client
+          .from("availability")
+          .delete()
+          .eq("event_id", currentEventId)
+          .eq("user_name", user);
 
-    const { error: deleteAvailError } = await client
-      .from("availability")
-      .delete()
-      .eq("event_id", currentEventId)
-      .eq("user_name", user);
+        if (deleteAvailError) {
+          console.error("Delete availability error:", deleteAvailError);
+          alert("Failed to update time choices");
+          return;
+        }
 
-    if (deleteAvailError) {
-      console.error("Delete availability error:", deleteAvailError);
-      alert("Failed to update time choices");
-      return;
-    }
+        const availabilityRows = selectedTimes.map(t => {
+          const [date, time] = t.split("-");
+          return {
+            event_id: currentEventId,
+            user_name: user,
+            date: date,
+            time_slot: time
+          };
+        });
 
-    if (selectedTimes.length > 0) {
-      const availabilityRows = selectedTimes.map(t => {
-        const [date, time] = t.split("-");
-        return {
+        const { error: insertAvailError } = await client
+          .from("availability")
+          .insert(availabilityRows);
+
+        if (insertAvailError) {
+          console.error("Insert availability error:", insertAvailError);
+          alert("Failed to save time choices");
+          return;
+        }
+
+        const { error: deleteFoodError } = await client
+          .from("food_votes")
+          .delete()
+          .eq("event_id", currentEventId)
+          .eq("user_name", user);
+
+        if (deleteFoodError) {
+          console.error("Delete food votes error:", deleteFoodError);
+          alert("Failed to update food choices");
+          return;
+        }
+
+        const foodRows = selectedFoods.map(f => ({
           event_id: currentEventId,
           user_name: user,
-          date: date,
-          time_slot: time
-        };
+          food: f
+        }));
+
+        const { error: insertFoodError } = await client
+          .from("food_votes")
+          .insert(foodRows);
+
+        if (insertFoodError) {
+          console.error("Insert food votes error:", insertFoodError);
+          alert("Failed to save food choices");
+          return;
+        }
+
+        // 提交成功后，判断是否最后一人
+        const { data: allAvail, error: allAvailError } = await client
+          .from("availability")
+          .select("*")
+          .eq("event_id", currentEventId);
+
+        if (allAvailError) {
+          console.error("Load availability after submit error:", allAvailError);
+          alert("Saved, but failed to check progress");
+          return;
+        }
+
+        const users = [...new Set((allAvail || []).map(d => d.user_name))];
+
+        // 非最后一人：显示分享链接
+        if (users.length < expectedPeople) {
+          setShareLink();
+          document.getElementById("shareLink").classList.remove("hidden");
+          alert("Saved! Now send the link to the next friend 😊");
+          return;
+        }
+
+        // 最后一人：进入最后流程
+        await prepareFinalFlow();
+
+      } catch (err) {
+        console.error("Unexpected submitAll error:", err);
+        alert("Unexpected error happened");
+      }
+    }
+
+    async function prepareFinalFlow() {
+      try {
+        const { data: event, error: eventError } = await client
+          .from("events")
+          .select("*")
+          .eq("id", currentEventId)
+          .single();
+
+        if (eventError || !event) {
+          console.error("Load event error:", eventError);
+          alert("Event not found");
+          return;
+        }
+
+        expectedPeople = event.expected_people || 0;
+
+        const { data: avail, error: availError } = await client
+          .from("availability")
+          .select("*")
+          .eq("event_id", currentEventId);
+
+        if (availError) {
+          console.error("Load availability error:", availError);
+          alert("Failed to load time results");
+          return;
+        }
+
+        const { data: food, error: foodError } = await client
+          .from("food_votes")
+          .select("*")
+          .eq("event_id", currentEventId);
+
+        if (foodError) {
+          console.error("Load food votes error:", foodError);
+          alert("Failed to load food results");
+          return;
+        }
+
+        const availList = avail || [];
+        const foodList = food || [];
+
+        const timeCount = {};
+        availList.forEach(d => {
+          const key = `${d.date}-${d.time_slot}`;
+          timeCount[key] = (timeCount[key] || 0) + 1;
+        });
+
+        const foodCount = {};
+        foodList.forEach(f => {
+          foodCount[f.food] = (foodCount[f.food] || 0) + 1;
+        });
+
+        sortedTimeResults = Object.entries(timeCount).sort((a, b) => b[1] - a[1]);
+        sortedFoodResults = Object.entries(foodCount).sort((a, b) => b[1] - a[1]);
+
+        // 预览页
+        document.getElementById("summaryPreview").innerHTML = `
+          <div class="summary-item">
+            <strong>Time options submitted:</strong><br>
+            ${sortedTimeResults.length > 0
+              ? sortedTimeResults.map(item => `${item[0]} (${item[1]})`).join("<br>")
+              : "No time votes"}
+          </div>
+          <div class="summary-item">
+            <strong>Food options submitted:</strong><br>
+            ${sortedFoodResults.length > 0
+              ? sortedFoodResults.map(item => `${item[0]} (${item[1]})`).join("<br>")
+              : "No food votes"}
+          </div>
+        `;
+
+        showPage("page3");
+      } catch (err) {
+        console.error("Unexpected prepareFinalFlow error:", err);
+        alert("Unexpected error happened");
+      }
+    }
+
+    function goToLockPage() {
+      renderFinalOptions();
+      showPage("page4");
+    }
+
+    function renderFinalOptions() {
+      finalTime = null;
+      finalFood = null;
+
+      document.getElementById("finalTimeOptions").innerHTML =
+        sortedTimeResults.length > 0
+          ? sortedTimeResults.map(item =>
+              `<span class="option-tag" onclick="selectFinalTime(this, '${item[0].replace(/'/g, "\\'")}')">${item[0]} (${item[1]})</span>`
+            ).join("")
+          : `<div class="small-text">No time result available</div>`;
+
+      document.getElementById("finalFoodOptions").innerHTML =
+        sortedFoodResults.length > 0
+          ? sortedFoodResults.map(item =>
+              `<span class="option-tag" onclick="selectFinalFood(this, '${item[0].replace(/'/g, "\\'")}')">${item[0]} (${item[1]})</span>`
+            ).join("")
+          : `<div class="small-text">No food result available</div>`;
+    }
+
+    function selectFinalTime(el, value) {
+      document.querySelectorAll("#finalTimeOptions .option-tag").forEach(tag => {
+        tag.classList.remove("selected");
       });
+      el.classList.add("selected");
+      finalTime = value;
+    }
 
-      const { error: insertAvailError } = await client
-        .from("availability")
-        .insert(availabilityRows);
+    function selectFinalFood(el, value) {
+      document.querySelectorAll("#finalFoodOptions .option-tag").forEach(tag => {
+        tag.classList.remove("selected");
+      });
+      el.classList.add("selected");
+      finalFood = value;
+    }
 
-      if (insertAvailError) {
-        console.error("Insert availability error:", insertAvailError);
-        alert("Failed to save time choices");
+    function generateInvite() {
+      if (!finalTime) {
+        alert("Please lock in the final time");
         return;
+      }
+
+      if (!finalFood) {
+        alert("Please lock in the final food");
+        return;
+      }
+
+      const eventName = document.getElementById("eventName").value.trim() || "NomNom Club Dinner";
+
+      document.getElementById("inviteCard").innerHTML = `
+        <div class="center-text">
+          <h3 style="margin-bottom: 10px;">🍜 ${eventName}</h3>
+          <p><strong>📅 Time:</strong> ${finalTime}</p>
+          <p><strong>🍽 Food:</strong> ${finalFood}</p>
+          <p class="small-text">See you there!</p>
+        </div>
+      `;
+
+      showPage("page5");
+    }
+
+    function notifyEveryone() {
+      alert("Notify everyone clicked. Later we can connect this to WhatsApp, email, or SMS.");
+    }
+
+    function backToLockPage() {
+      showPage("page4");
+    }
+
+    async function initFromUrl() {
+      try {
+        const urlParams = new URLSearchParams(window.location.search);
+        const eventId = urlParams.get("event");
+
+        if (!eventId) {
+          showPage("page1");
+          return;
+        }
+
+        currentEventId = eventId;
+
+        const { data: event, error } = await client
+          .from("events")
+          .select("*")
+          .eq("id", currentEventId)
+          .single();
+
+        if (error || !event) {
+          console.error("Init event load error:", error);
+          alert("Invalid or expired event link");
+          currentEventId = null;
+          showPage("page1");
+          return;
+        }
+
+        expectedPeople = event.expected_people || 0;
+
+        renderTags();
+        document.getElementById("shareLink").classList.add("hidden");
+        document.getElementById("shareLink").innerHTML = "";
+        showPage("page2");
+      } catch (err) {
+        console.error("Unexpected initFromUrl error:", err);
+        showPage("page1");
       }
     }
 
-    const { error: deleteFoodError } = await client
-      .from("food_votes")
-      .delete()
-      .eq("event_id", currentEventId)
-      .eq("user_name", user);
-
-    if (deleteFoodError) {
-      console.error("Delete food votes error:", deleteFoodError);
-      alert("Failed to update food choices");
-      return;
-    }
-
-    if (selectedFoods.length > 0) {
-      const foodRows = selectedFoods.map(f => ({
-        event_id: currentEventId,
-        user_name: user,
-        food: f
-      }));
-
-      const { error: insertFoodError } = await client
-        .from("food_votes")
-        .insert(foodRows);
-
-      if (insertFoodError) {
-        console.error("Insert food votes error:", insertFoodError);
-        alert("Failed to save food choices");
-        return;
-      }
-    }
-
-    alert("Saved!");
-  } catch (err) {
-    console.error("Unexpected submitAll error:", err);
-    alert("Unexpected error happened");
-  }
-}
-
-async function loadResults() {
-  try {
-    if (!currentEventId) {
-      alert("Event not found");
-      return;
-    }
-
-    const { data: event, error: eventError } = await client
-      .from("events")
-      .select("*")
-      .eq("id", currentEventId)
-      .single();
-
-    if (eventError || !event) {
-      console.error("Load event error:", eventError);
-      alert("Event not found");
-      return;
-    }
-
-    expectedPeople = event.expected_people || 0;
-
-    const { data: avail, error: availError } = await client
-      .from("availability")
-      .select("*")
-      .eq("event_id", currentEventId);
-
-    if (availError) {
-      console.error("Load availability error:", availError);
-      alert("Failed to load availability");
-      return;
-    }
-
-    const { data: food, error: foodError } = await client
-      .from("food_votes")
-      .select("*")
-      .eq("event_id", currentEventId);
-
-    if (foodError) {
-      console.error("Load food votes error:", foodError);
-      alert("Failed to load food votes");
-      return;
-    }
-
-    const availList = avail || [];
-    const foodList = food || [];
-
-    const users = [...new Set(availList.map(d => d.user_name))];
-
-    if (users.length < expectedPeople) {
-      alert(`Waiting for ${expectedPeople - users.length} more people`);
-      return;
-    }
-
-    if (availList.length === 0) {
-      alert("No one has submitted time yet");
-      return;
-    }
-
-    const count = {};
-    availList.forEach(d => {
-      const key = `${d.date}-${d.time_slot}`;
-      count[key] = (count[key] || 0) + 1;
-    });
-
-    const sortedTimes = Object.entries(count).sort((a, b) => b[1] - a[1]);
-    const finalTime = sortedTimes.length > 0 ? sortedTimes[0][0] : "No result yet";
-
-    const foodCount = {};
-    foodList.forEach(f => {
-      foodCount[f.food] = (foodCount[f.food] || 0) + 1;
-    });
-
-    const sortedFoods = Object.entries(foodCount).sort((a, b) => b[1] - a[1]);
-    const finalFood = sortedFoods.length > 0 ? sortedFoods[0][0] : "No food preference yet";
-
-    document.getElementById("finalResult").innerHTML =
-      `📅 <strong>${finalTime}</strong><br>🍜 <strong>${finalFood}</strong><br><div class="small-text">Participants submitted: ${users.length}/${expectedPeople}</div>`;
-
-    showPage("page3");
-  } catch (err) {
-    console.error("Unexpected loadResults error:", err);
-    alert("Unexpected error happened");
-  }
-}
-
-async function initFromUrl() {
-  try {
-    const urlParams = new URLSearchParams(window.location.search);
-    const eventId = urlParams.get("event");
-
-    if (!eventId) {
-      showPage("page1");
-      return;
-    }
-
-    currentEventId = eventId;
-
-    const { data: event, error } = await client
-      .from("events")
-      .select("*")
-      .eq("id", currentEventId)
-      .single();
-
-    if (error || !event) {
-      console.error("Init event load error:", error);
-      alert("Invalid or expired event link");
-      showPage("page1");
-      currentEventId = null;
-      return;
-    }
-
-    expectedPeople = event.expected_people || 0;
-
-    renderTags();
-    setShareLink();
-    showPage("page2");
-  } catch (err) {
-    console.error("Unexpected initFromUrl error:", err);
-    showPage("page1");
-  }
-}
-
-initFromUrl();
-</script>
+    initFromUrl();
+  </script>
 
 </body>
 </html>
