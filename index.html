@@ -1,284 +1,170 @@
+```html
 <!DOCTYPE html>
 <html>
 <head>
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<script src="https://unpkg.com/@supabase/supabase-js"></script>
+<meta charset="UTF-8">
+<title>NomNom Club 🍜</title>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
 
 <style>
-body { font-family: Arial; background:#f5f5f5; }
-.container { max-width:480px; margin:auto; padding:16px; }
-.card { background:white; padding:16px; border-radius:12px; margin-top:12px; }
-
-.tag {
-  padding:6px 10px;
-  border:1px solid #ccc;
-  border-radius:20px;
-  margin:4px;
-  display:inline-block;
-}
-.tag.selected { background:#07C160; color:white; }
-
-#timeTags, #foodOptions { display:flex; flex-wrap:wrap; gap:6px; }
-
-.vote-bar { height:8px; background:#07C160; border-radius:4px; margin-top:4px; }
-.avatar { width:50px; height:50px; border-radius:50%; position:absolute; transition:1s; }
-.center { top:35px !important; left:calc(50% - 25px) !important; }
+body { font-family: Arial; background:#f5f5f5; padding:20px;}
+.card { background:white; padding:20px; border-radius:12px; max-width:400px; margin:auto;}
+.tag { display:inline-block; padding:8px 12px; margin:5px; border-radius:20px; background:#eee; cursor:pointer;}
+.tag.selected { background:#07c160; color:white;}
+.btn { margin-top:10px; padding:10px; width:100%; border:none; border-radius:8px;}
+.btn-primary { background:#07c160; color:white;}
 </style>
 </head>
 
 <body>
-<div class="container">
 
-<!-- PAGE1 -->
-<div id="page1" class="card">
-  <h2>NomNom Club 🍜</h2>
-  <input id="eventTitle" placeholder="Event name"><br><br>
-  <input id="expectedPeople" placeholder="How many people?"><br><br>
-  <button onclick="createDinnerEvent()">Create</button>
+<div class="card" id="page1">
+<h2>NomNom Club 🍜</h2>
+<input id="eventName" placeholder="Event name"><br><br>
+<input id="expectedPeople" placeholder="Number of people"><br><br>
+<button class="btn btn-primary" onclick="createEvent()">Create</button>
 </div>
 
-<!-- PAGE2 -->
-<div id="page2" class="card" style="display:none;">
-  <h3>Pick Time</h3>
-  <div id="shareLink"></div>
-  <input id="userName" placeholder="Your name">
+<div class="card" id="page2" style="display:none;">
+<h3>Pick Time & Food</h3>
 
-  <div id="timeTags"></div>
+<div id="shareLink"></div><br>
 
-  <button onclick="submitAvailability()">Submit</button>
-  <button onclick="loadResults()">View Results</button>
+<input id="userName" placeholder="Your name">
+
+<h4>Time</h4>
+<div id="timeTags"></div>
+
+<h4>Food (max 3)</h4>
+<div id="foodTags"></div>
+
+<button class="btn btn-primary" onclick="submitAll()">Submit</button>
+<button class="btn" onclick="loadResults()">View Progress</button>
 </div>
 
-<!-- PAGE3 -->
-<div id="page3" class="card" style="display:none;">
-  <h3>Results</h3>
-  <div id="overlapOptions"></div>
-  <button id="confirmBtn" onclick="confirmTime()">Confirm Time</button>
-  <button onclick="goBack()">Back</button>
-</div>
-
-<!-- PAGE4 -->
-<div id="page4" class="card" style="display:none;">
-  <h3>Vote Food</h3>
-  <input id="foodUserName" placeholder="Your name">
-
-  <div id="foodOptions">
-    <span class="tag" onclick="toggleFood(this)">Hotpot</span>
-    <span class="tag" onclick="toggleFood(this)">BBQ</span>
-    <span class="tag" onclick="toggleFood(this)">Japanese</span>
-    <span class="tag" onclick="toggleFood(this)">Korean</span>
-    <span class="tag" onclick="toggleFood(this)">Thai</span>
-  </div>
-
-  <button onclick="submitFoodVote()">Submit Vote</button>
-  <button onclick="showFoodResult()">View Result</button>
-
-  <div id="foodResult"></div>
-  <div id="shareLinkFood"></div>
-
-  <button id="cardBtn" onclick="generateInvitationCard()">Generate Card</button>
-</div>
-
-<!-- PAGE5 -->
-<div id="page5" class="card" style="display:none;">
-  <h3>🎉 Dinner Confirmed</h3>
-  <div id="avatarContainer" style="position:relative;height:120px;"></div>
-  <div id="finalCard" style="display:none;">
-    <div id="cardTime"></div>
-    <div id="cardFood"></div>
-  </div>
-</div>
-
+<div class="card" id="page3" style="display:none;">
+<h3>Final Decision</h3>
+<div id="finalResult"></div>
 </div>
 
 <script>
 const SUPABASE_URL = "https://bunzqgrdssupaeqznjwl.supabase.co";
 const SUPABASE_KEY = "sb_publishable_UFLcdJ0eFI2PO6suaFxQeQ_Bpaf9X9z";
-
 const client = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-let currentEventId = null;
+let currentEventId=null;
+let expectedPeople=0;
 
-/* 初始化 */
-window.onload = function() {
-  const params = new URLSearchParams(window.location.search);
-  const event = params.get("event");
-  if(event){
-    currentEventId = event;
-    page1.style.display="none";
-    page2.style.display="block";
-    showShareLink();
-  }
+const times=["Mon-Lunch","Mon-Dinner","Tue-Lunch","Tue-Dinner","Wed-Lunch","Wed-Dinner","Thu-Lunch","Thu-Dinner","Fri-Lunch","Fri-Dinner","Sat-Lunch","Sat-Dinner","Sun-Lunch","Sun-Dinner"];
+const foods=["Chinese","Japanese","Korean","Italian","Thai","BBQ"];
 
-  // 生成7天时间
-  const days=["Mon","Tue","Wed","Thu","Fri","Sat","Sun"];
-  const container=document.getElementById("timeTags");
-  container.innerHTML="";
-  days.forEach(d=>{
-    ["Lunch","Dinner"].forEach(t=>{
-      const el=document.createElement("span");
-      el.className="tag";
-      el.innerText=d+"-"+t;
-      el.onclick=()=>el.classList.toggle("selected");
-      container.appendChild(el);
-    })
-  })
-};
+function renderTags(){
+document.getElementById("timeTags").innerHTML=
+times.map(t=>`<span class="tag" onclick="toggle(this)">${t}</span>`).join("");
 
-/* 创建 */
-async function createDinnerEvent(){
-  const title=eventTitle.value;
-  const expected=expectedPeople.value;
-
-  const {data}=await client.from("events").insert([{title,expected_people:expected}]).select();
-  currentEventId=data[0].id;
-
-  history.replaceState({},'',`?event=${currentEventId}`);
-  page1.style.display="none";
-  page2.style.display="block";
-  showShareLink();
+document.getElementById("foodTags").innerHTML=
+foods.map(f=>`<span class="tag food" onclick="toggleFood(this)">${f}</span>`).join("");
 }
 
-function showShareLink(){
-  shareLink.innerText="Share 👇 "+location.href;
+function toggle(el){
+el.classList.toggle("selected");
 }
 
-/* 时间提交 */
-async function submitAvailability(){
-  const name=userName.value;
-  const selected=document.querySelectorAll("#timeTags .selected");
-
-  await client.from("availability").delete().eq("event_id",currentEventId).eq("user_name",name);
-
-  for(let s of selected){
-    const [date,time]=s.innerText.split("-");
-    await client.from("availability").insert([{event_id:currentEventId,user_name:name,date,time_slot:time}]);
-  }
-
-  alert("Saved");
-}
-
-/* 结果 */
-async function loadResults(){
-  const {data}=await client.from("availability").select("*").eq("event_id",currentEventId);
-  const {data:eventData}=await client.from("events").select("*").eq("id",currentEventId).single();
-
-  page2.style.display="none";
-  page3.style.display="block";
-
-  const users=[...new Set(data.map(d=>d.user_name))];
-  const isLastUser=users.length>=eventData.expected_people;
-
-  confirmBtn.style.display=isLastUser?"block":"none";
-
-  if(!isLastUser){
-    overlapOptions.innerText="Waiting for everyone ⏳";
-    return;
-  }
-
-  const count={};
-  data.forEach(d=>{
-    const key=d.date+"-"+d.time_slot;
-    count[key]=(count[key]||0)+1;
-  });
-
-  const overlap=Object.entries(count).filter(([k,v])=>v===users.length).map(([k])=>k);
-
-  overlapOptions.innerHTML=overlap.map(t=>`<div class="tag" onclick="selectFinal(this)">${t}</div>`).join("");
-}
-
-function selectFinal(el){
-  document.querySelectorAll("#overlapOptions .tag").forEach(t=>t.classList.remove("selected"));
-  el.classList.add("selected");
-}
-
-function confirmTime(){
-  const t=document.querySelector("#overlapOptions .selected").innerText;
-  localStorage.setItem("final_time",t);
-  page3.style.display="none";
-  page4.style.display="block";
-}
-
-/* 投票 */
 function toggleFood(el){
-  const selected=document.querySelectorAll("#foodOptions .selected");
-  if(el.classList.contains("selected")){
-    el.classList.remove("selected");return;
-  }
-  if(selected.length>=3){ alert("Max 3"); return;}
-  el.classList.add("selected");
+const selected=document.querySelectorAll(".food.selected");
+if(!el.classList.contains("selected") && selected.length>=3){
+alert("Max 3 foods");
+return;
+}
+el.classList.toggle("selected");
 }
 
-async function submitFoodVote(){
-  const name=foodUserName.value;
-  const selected=document.querySelectorAll("#foodOptions .selected");
+async function createEvent(){
+const name=document.getElementById("eventName").value;
+expectedPeople=parseInt(document.getElementById("expectedPeople").value);
 
-  await client.from("food_votes").delete().eq("event_id",currentEventId).eq("user_name",name);
+const {data}=await client.from("events").insert([{title:name,expected_people:expectedPeople}]).select();
 
-  for(let s of selected){
-    await client.from("food_votes").insert([{event_id:currentEventId,user_name:name,food:s.innerText}]);
-  }
+currentEventId=data[0].id;
+
+document.getElementById("page1").style.display="none";
+document.getElementById("page2").style.display="block";
+
+document.getElementById("shareLink").innerHTML=
+`Share 👉 ${location.origin}?event=${currentEventId}`;
+
+renderTags();
 }
 
-async function showFoodResult(){
-  const {data}=await client.from("food_votes").select("*").eq("event_id",currentEventId);
+async function submitAll(){
+const user=document.getElementById("userName").value;
 
-  const map={};
-  data.forEach(d=>{
-    if(!map[d.user_name]) map[d.user_name]=[];
-    map[d.user_name].push(d.food);
-  });
+const selectedTimes=[...document.querySelectorAll("#timeTags .selected")].map(t=>t.innerText);
+const selectedFoods=[...document.querySelectorAll("#foodTags .selected")].map(t=>t.innerText);
 
-  foodResult.innerHTML="<b>Choices:</b><br>"+Object.entries(map).map(([u,f])=>`${u}: ${f.join(",")}`).join("<br>");
+await client.from("availability").delete().eq("event_id",currentEventId).eq("user_name",user);
 
-  const count={};
-  data.forEach(d=>count[d.food]=(count[d.food]||0)+1);
+await Promise.all(selectedTimes.map(t=>{
+const [date,time]=t.split("-");
+return client.from("availability").insert([{event_id:currentEventId,user_name:user,date,time_slot:time}]);
+}));
 
-  const sorted=Object.entries(count).sort((a,b)=>b[1]-a[1]);
-  const allSame=sorted.every(i=>i[1]===sorted[0][1]);
+await client.from("food_votes").delete().eq("event_id",currentEventId).eq("user_name",user);
 
-  if(allSame){
-    foodResult.innerHTML+="<br>🤝 Everyone agrees!";
-  }
+await Promise.all(selectedFoods.map(f=>{
+return client.from("food_votes").insert([{event_id:currentEventId,user_name:user,food:f}]);
+}));
 
-  localStorage.setItem("final_food",sorted[0][0]);
-
-  const users=[...new Set(data.map(d=>d.user_name))];
-  cardBtn.style.display=users.length>=2?"block":"none";
-
-  shareLinkFood.innerText="Invite 👇 "+location.href;
+alert("Saved!");
 }
 
-/* 卡片 */
-async function generateInvitationCard(){
-  const {data}=await client.from("availability").select("user_name").eq("event_id",currentEventId);
-  const users=[...new Set(data.map(d=>d.user_name))];
+async function loadResults(){
 
-  page4.style.display="none";
-  page5.style.display="block";
+const {data:event}=await client.from("events").select("*").eq("id",currentEventId).single();
+expectedPeople=event.expected_people;
 
-  users.forEach((u,i)=>{
-    const div=document.createElement("div");
-    div.className="avatar";
-    div.innerText=u[0];
-    div.style.background="#07C160";
-    div.style.top=i*20+"px";
-    div.style.left=i*60+"px";
-    avatarContainer.appendChild(div);
-    setTimeout(()=>div.classList.add("center"),100);
-  });
+const {data:avail}=await client.from("availability").select("*").eq("event_id",currentEventId);
+const {data:food}=await client.from("food_votes").select("*").eq("event_id",currentEventId);
 
-  setTimeout(()=>{
-    finalCard.style.display="block";
-    cardTime.innerText=localStorage.getItem("final_time");
-    cardFood.innerText=localStorage.getItem("final_food");
-  },1200);
+const users=[...new Set(avail.map(d=>d.user_name))];
+
+if(users.length<expectedPeople){
+alert(`Waiting for ${expectedPeople-users.length} more people`);
+return;
 }
 
-function goBack(){
-  page3.style.display="none";
-  page2.style.display="block";
+const count={};
+avail.forEach(d=>{
+const key=d.date+"-"+d.time_slot;
+count[key]=(count[key]||0)+1;
+});
+
+const finalTime=Object.entries(count).sort((a,b)=>b[1]-a[1])[0][0];
+
+const foodCount={};
+food.forEach(f=>{
+foodCount[f.food]=(foodCount[f.food]||0)+1;
+});
+
+const finalFood=Object.entries(foodCount).sort((a,b)=>b[1]-a[1])[0][0];
+
+document.getElementById("page2").style.display="none";
+document.getElementById("page3").style.display="block";
+
+document.getElementById("finalResult").innerHTML=
+`📅 ${finalTime}<br>🍜 ${finalFood}`;
+}
+
+const urlParams=new URLSearchParams(window.location.search);
+if(urlParams.get("event")){
+currentEventId=urlParams.get("event");
+document.getElementById("page1").style.display="none";
+document.getElementById("page2").style.display="block";
+renderTags();
 }
 </script>
+
 </body>
 </html>
+```
