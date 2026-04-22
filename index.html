@@ -1,4 +1,3 @@
-```html
 <!DOCTYPE html>
 <html>
 <head>
@@ -14,22 +13,28 @@ body { font-family: Arial; background:#f5f5f5; padding:20px;}
 .tag.selected { background:#07c160; color:white;}
 .btn { margin-top:10px; padding:10px; width:100%; border:none; border-radius:8px;}
 .btn-primary { background:#07c160; color:white;}
+input { width:100%; padding:8px; margin-top:10px; }
 </style>
 </head>
 
 <body>
 
+<!-- PAGE 1 -->
 <div class="card" id="page1">
 <h2>NomNom Club 🍜</h2>
-<input id="eventName" placeholder="Event name"><br><br>
-<input id="expectedPeople" placeholder="Number of people"><br><br>
+
+<input id="eventName" placeholder="Event name">
+<input id="hostName" placeholder="Your name">
+<input id="expectedPeople" placeholder="Number of people">
+
 <button class="btn btn-primary" onclick="createEvent()">Create</button>
 </div>
 
+<!-- PAGE 2 -->
 <div class="card" id="page2" style="display:none;">
 <h3>Pick Time & Food</h3>
 
-<div id="shareLink"></div><br>
+<div id="shareLink"></div>
 
 <input id="userName" placeholder="Your name">
 
@@ -43,6 +48,7 @@ body { font-family: Arial; background:#f5f5f5; padding:20px;}
 <button class="btn" onclick="loadResults()">View Progress</button>
 </div>
 
+<!-- PAGE 3 -->
 <div class="card" id="page3" style="display:none;">
 <h3>Final Decision</h3>
 <div id="finalResult"></div>
@@ -50,7 +56,7 @@ body { font-family: Arial; background:#f5f5f5; padding:20px;}
 
 <script>
 const SUPABASE_URL = "https://bunzqgrdssupaeqznjwl.supabase.co";
-const SUPABASE_KEY = "sb_publishable_UFLcdJ0eFI2PO6suaFxQeQ_Bpaf9X9z";
+const SUPABASE_KEY = "sb_publishable_你的key";
 const client = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
 let currentEventId=null;
@@ -82,11 +88,29 @@ el.classList.toggle("selected");
 
 async function createEvent(){
 const name=document.getElementById("eventName").value;
+const host=document.getElementById("hostName").value;
 expectedPeople=parseInt(document.getElementById("expectedPeople").value);
 
-const {data}=await client.from("events").insert([{title:name,expected_people:expectedPeople}]).select();
+if(!name || !host || !expectedPeople){
+alert("Please fill all fields");
+return;
+}
+
+const {data,error}=await client
+  .from("events")
+  .insert([{title:name, expected_people:expectedPeople}])
+  .select();
+
+if(error){
+console.error(error);
+alert("Create failed ❌ check console");
+return;
+}
 
 currentEventId=data[0].id;
+
+// 自动填入host名字
+document.getElementById("userName").value = host;
 
 document.getElementById("page1").style.display="none";
 document.getElementById("page2").style.display="block";
@@ -99,6 +123,11 @@ renderTags();
 
 async function submitAll(){
 const user=document.getElementById("userName").value;
+
+if(!user){
+alert("Enter your name");
+return;
+}
 
 const selectedTimes=[...document.querySelectorAll("#timeTags .selected")].map(t=>t.innerText);
 const selectedFoods=[...document.querySelectorAll("#foodTags .selected")].map(t=>t.innerText);
@@ -156,6 +185,7 @@ document.getElementById("finalResult").innerHTML=
 `📅 ${finalTime}<br>🍜 ${finalFood}`;
 }
 
+// 自动进入 event
 const urlParams=new URLSearchParams(window.location.search);
 if(urlParams.get("event")){
 currentEventId=urlParams.get("event");
@@ -167,4 +197,3 @@ renderTags();
 
 </body>
 </html>
-```
